@@ -1,0 +1,17 @@
+[package]
+name = "device-auth-firmware"
+description = "Device side of device-auth: pairing registration and signed request tokens"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+categories = ["embedded", "no-std"]
+
+[dependencies]
+device-auth-core.workspace = true
+p256.workspace = true
+sha2.workspace = true
+
+[dev-dependencies]
+base64.workspace = true

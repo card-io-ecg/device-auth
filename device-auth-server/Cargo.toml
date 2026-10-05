@@ -1,0 +1,22 @@
+[package]
+name = "device-auth-server"
+description = "Server side of device-auth: pairing codes, registration, and request verification"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+device-auth-core.workspace = true
+base64.workspace = true
+docsplay.workspace = true
+jsonwebtoken.workspace = true
+p256.workspace = true
+rand_core.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+device-auth-firmware.workspace = true
+serde_json.workspace = true

@@ -1,0 +1,13 @@
+[package]
+name = "device-auth-core"
+description = "Wire format shared by device-auth-firmware and device-auth-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+categories = ["embedded", "no-std"]
+
+[dependencies]
+hmac.workspace = true
+sha2.workspace = true

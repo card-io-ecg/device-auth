@@ -1,0 +1,25 @@
+[workspace]
+resolver = "3"
+members = ["device-auth-core", "device-auth-firmware", "device-auth-server"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/card-io-ecg/device-auth"
+
+[workspace.dependencies]
+device-auth-core = { path = "device-auth-core" }
+device-auth-firmware = { path = "device-auth-firmware" }
+
+base64 = "0.22"
+docsplay = "0.1"
+hmac = { version = "0.12", default-features = false }
+jsonwebtoken = { version = "11.1.0", default-features = false, features = ["rust_crypto"] }
+p256 = { version = "0.13", default-features = false, features = ["ecdsa"] }
+rand_core = { version = "0.6.4", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = { version = "0.10", default-features = false }
+thiserror = "2"
