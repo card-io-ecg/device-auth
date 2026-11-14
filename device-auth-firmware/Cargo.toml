@@ -10,8 +10,9 @@ categories = ["embedded", "no-std"]
 
 [dependencies]
 device-auth-core.workspace = true
-p256.workspace = true
-sha2.workspace = true
+embassy-crypto.workspace = true
 
 [dev-dependencies]
 base64.workspace = true
+embassy-crypto-rand.workspace = true
+embassy-crypto-rustcrypto.workspace = true

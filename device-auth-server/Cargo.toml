@@ -19,4 +19,6 @@ thiserror.workspace = true
 
 [dev-dependencies]
 device-auth-firmware.workspace = true
+embassy-crypto-rand.workspace = true
+embassy-crypto-rustcrypto.workspace = true
 serde_json.workspace = true
