@@ -6,10 +6,8 @@ use device_auth_core::code_mac;
 pub use device_auth_core::{
     ALPHABET, CODE_LEN, COUNTER_HEADER, Code, NAME_MAX_LEN, PUBLIC_KEY_LEN, valid_name,
 };
-use p256::ecdsa::Signature;
-pub use p256::ecdsa::SigningKey;
-use p256::ecdsa::signature::DigestSigner;
-use sha2::{Digest, Sha256};
+use embassy_crypto::Sha256;
+pub use embassy_crypto::p256::SigningKey;
 
 /// Normalizes a code a person typed: drops `-` and spaces, reads `O` as `0` and `I` or `L` as
 /// `1`, and upper-cases letters. Returns `None` when another character is outside [`ALPHABET`]
@@ -69,11 +67,7 @@ pub fn registration(
     code: &Code,
     out: &mut impl Write,
 ) -> fmt::Result {
-    let point = key.verifying_key().to_encoded_point(false);
-    let public_key: &[u8; PUBLIC_KEY_LEN] = point
-        .as_bytes()
-        .try_into()
-        .expect("an uncompressed P-256 point is 65 bytes");
+    let public_key: [u8; PUBLIC_KEY_LEN] = key.verifying_key().map_err(|_| fmt::Error)?.to_sec1();
     // SEC1 uncompressed: 0x04, then the 32-byte x and y coordinates.
     let (x, y) = public_key[1..].split_at(32);
 
@@ -92,7 +86,7 @@ pub fn registration(
             claims.write_str(r#"{"name":"#)?;
             json_string(name, claims)?;
             claims.write_str(r#","code_mac":""#)?;
-            base64url(&code_mac(code, public_key), claims)?;
+            base64url(&code_mac(code, &public_key), claims)?;
             claims.write_str(r#""}"#)
         },
     )
@@ -146,8 +140,11 @@ fn jws(
     payload(&mut part)?;
     part.finish()?;
 
-    // RFC 6979 nonce, as `Signer::sign` uses. The JWS form of an ES256 signature is r ‖ s.
-    let signature: Signature = key.sign_digest(input.digest);
+    // The ECDSA driver draws the nonce from the random number generator. The JWS form of an
+    // ES256 signature is r ‖ s.
+    let signature = key
+        .sign_prehash(&input.digest.finalize())
+        .map_err(|_| fmt::Error)?;
     input.out.write_char('.')?;
     base64url(&signature.to_bytes(), input.out)
 }
@@ -243,7 +240,8 @@ impl<W: Write> Write for Base64Url<W> {
 mod tests {
     use base64::Engine as _;
     use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-    use p256::ecdsa::signature::{Signer, Verifier};
+    use embassy_crypto::p256::Signature;
+    use {embassy_crypto_rand as _, embassy_crypto_rustcrypto as _};
 
     use super::*;
 
@@ -278,7 +276,7 @@ mod tests {
     }
 
     fn key() -> SigningKey {
-        SigningKey::from_bytes(&[1; 32].into()).unwrap()
+        SigningKey::from_bytes(&[1; 32]).unwrap()
     }
 
     fn token(name: &str, counter: u64, method: &str, path: &str) -> String {
@@ -300,13 +298,13 @@ mod tests {
 
     fn assert_signed_by_key(token: &str) {
         let (input, signature) = token.rsplit_once('.').unwrap();
-        let signature = Signature::from_slice(&URL_SAFE_NO_PAD.decode(signature).unwrap()).unwrap();
+        let signature = URL_SAFE_NO_PAD.decode(signature).unwrap();
+        let signature = Signature::from_bytes(signature.as_slice().try_into().unwrap()).unwrap();
         key()
             .verifying_key()
-            .verify(input.as_bytes(), &signature)
+            .unwrap()
+            .verify_prehash(&Sha256::digest(input.as_bytes()), &signature)
             .unwrap();
-        let signed: Signature = key().sign(input.as_bytes());
-        assert_eq!(signature, signed);
     }
 
     #[test]
@@ -413,9 +411,15 @@ mod tests {
 
     #[test]
     fn tokens_fit_a_fixed_buffer() {
+        // Each signature draws a new nonce, so only the signed part repeats.
+        let signed = |token: &str| token.rsplit_once('.').unwrap().0.to_owned();
         let mut out = Fixed::<256>::new();
         request_token(&key(), "kitchen", 42, "GET", "/items?page=2", &mut out).unwrap();
-        assert_eq!(out.as_str(), token("kitchen", 42, "GET", "/items?page=2"));
+        assert_signed_by_key(out.as_str());
+        assert_eq!(
+            signed(out.as_str()),
+            signed(&token("kitchen", 42, "GET", "/items?page=2"))
+        );
 
         let mut short = Fixed::<64>::new();
         assert_eq!(

@@ -15,6 +15,9 @@ device-auth-firmware = { path = "device-auth-firmware" }
 
 base64 = "0.22"
 docsplay = "0.1"
+embassy-crypto = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", rev = "822a76ea91f2c0885c6eb0c65fe91181e31133e1" }
+embassy-crypto-rand = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", rev = "822a76ea91f2c0885c6eb0c65fe91181e31133e1" }
+embassy-crypto-rustcrypto = { version = "0.1.0", git = "https://github.com/embassy-rs/embassy", rev = "822a76ea91f2c0885c6eb0c65fe91181e31133e1", features = ["all"] }
 hmac = { version = "0.12", default-features = false }
 jsonwebtoken = { version = "11.1.0", default-features = false, features = ["rust_crypto"] }
 p256 = { version = "0.13", default-features = false, features = ["ecdsa"] }
